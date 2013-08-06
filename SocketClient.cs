@@ -14,6 +14,50 @@ namespace SocketClientServer
 
         public int ConnectTimeout { get; private set; }
 
+        public bool Reconnect
+        {
+            get { return _reconnect; }
+            set
+            {
+                _reconnect = value;
+
+                if (_reconnect)
+                {
+                    _reconnectTimer = new Timer(ReconnectTimeout);
+                    _reconnectTimer.AutoReset = true;
+                    _reconnectTimer.Elapsed += _reconnectTimer_Elapsed;
+                    _reconnectTimer.Start();
+                }
+                else
+                {
+                    _reconnectTimer = null;
+                }
+            }
+        }
+
+        private void _reconnectTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            lock (_reconnectTimer)
+            {
+                if (Reconnect && Socket != null && !Socket.IsSocketConnected())
+                {
+                    Open(_addresss, _port);
+                }
+            }
+        }
+
+        private int _reconnectTimeout = 10000;
+
+        public int ReconnectTimeout
+        {
+            get { return _reconnectTimeout; }
+            set
+            {
+                _reconnectTimeout = value;
+                if (_reconnectTimer != null) _reconnectTimer.Interval = value;
+            }
+        }
+
         private IAsyncResult m_result;
         private AsyncCallback m_pfnCallBack;
         private int _timeout = 0, _rtc = 0;
@@ -33,6 +77,10 @@ namespace SocketClientServer
         public ReadCallbackDelegate OnReadCallback = null;
         public OpenCallbackDelegate OnOpenCallback = null;
         public CloseCallbackDelegate OnCloseCallback = null;
+        private bool _reconnect = false;
+        private Timer _reconnectTimer;
+        private string _addresss;
+        private int _port;
 
         public SocketClient()
         {
@@ -73,6 +121,9 @@ namespace SocketClientServer
 
         public void Open(string address, int port)
         {
+            _addresss = address;
+            _port = port;
+
             Task.Factory
                 .StartNew(() =>
                 {
@@ -94,7 +145,7 @@ namespace SocketClientServer
                         IPAddress ip = IPAddress.Parse(address);
                         int iPortNo = System.Convert.ToInt16(port);
 
-                        logger.Info("Connecting to {0}:{1}", ip.ToString(), iPortNo);
+                        logger.Info(string.Format("Connecting to {0}:{1}", ip.ToString(), iPortNo));
 
                         // Create the end point
                         var ipEnd = new IPEndPoint(ip, iPortNo);

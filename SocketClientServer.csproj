@@ -31,9 +31,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NLog, Version=2.0.1.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\Testsing\WindowsService1\packages\NLog.2.0.1.2\lib\net40\NLog.dll</HintPath>
-    </Reference>
+    <Reference Include="Mes.Core.Common.Log, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -51,6 +49,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MES_HITRON\src\Common\Mes.Core.Common\Mes.Core.Common.csproj">
+      <Project>{AB0D4BDE-1466-4707-A486-20170C1D0D31}</Project>
+      <Name>Mes.Core.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

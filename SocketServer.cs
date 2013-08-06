@@ -68,21 +68,21 @@ namespace SocketClientServer
             return NetworkInterface.GetAllNetworkInterfaces();
         }
 
-        public string GetPacketAsString(SocketPacket socketPacket)
+        public static string GetPacketAsString(SocketPacket socketPacket)
         {
-            int iRx = socketPacket.dataBuffer.GetLength(0);
+            int iRx = socketPacket.DataBuffer.GetLength(0);
 
             char[] chars = new char[iRx + 1];
 
             // Extract the characters as a buffer
             System.Text.Decoder d = System.Text.Encoding.UTF8.GetDecoder();
-            int charLen = d.GetChars(socketPacket.dataBuffer, 0, iRx, chars, 0);
+            int charLen = d.GetChars(socketPacket.DataBuffer, 0, iRx, chars, 0);
 
             var szData = new String(chars);
             return szData;
         }
 
-        public IPHostEntry GetServerIp()
+        public static IPHostEntry GetServerIp()
         {
             String strHostName = Dns.GetHostName();
 
@@ -112,7 +112,9 @@ namespace SocketClientServer
             }
         }
 
-        public void Start(int port, int backlog = 4)
+        private IPAddress _ipaddress;
+
+        public void Start(string address, int port, int backlog = 4)
         {
             try
             {
@@ -121,7 +123,8 @@ namespace SocketClientServer
                     SocketType.Stream,
                     ProtocolType.Tcp);
 
-                IPEndPoint ipLocal = new IPEndPoint(IPAddress.Any, port);
+                _ipaddress = IPAddress.Parse(address);
+                IPEndPoint ipLocal = new IPEndPoint(_ipaddress, port);
 
                 // Bind to local IP Address...
                 _mMainSocket.Bind(ipLocal);
@@ -133,6 +136,8 @@ namespace SocketClientServer
                 _mMainSocket.BeginAccept(new AsyncCallback(OnClientConnect), null);
 
                 _isStarted = true;
+
+                logger.Info("Server " + _ipaddress + ":" + port + " started.");
             }
             catch (SocketException e)
             {
@@ -229,7 +234,7 @@ namespace SocketClientServer
                 // Complete the BeginReceive() asynchronous call by EndReceive() method
                 // which will return the number of characters written to the stream
                 // by the client
-                socketData.m_currentSocket.EndReceive(asyn);
+                socketData.CurrentSocket.EndReceive(asyn);
 
                 // Send back the reply to the client
                 //string replyMsg = "Server Reply:" + szData.ToUpper();
@@ -246,7 +251,7 @@ namespace SocketClientServer
                 }
 
                 // Continue the waiting for data on the Socket
-                WaitForData(socketData.m_currentSocket, socketData.m_clientNumber);
+                WaitForData(socketData.CurrentSocket, socketData.ClientNumber);
             }
             catch (ObjectDisposedException e)
             {
@@ -257,14 +262,14 @@ namespace SocketClientServer
             {
                 if (e.ErrorCode == 10054) // Error code for Connection reset by peer
                 {
-                    var msg = "Client " + socketData.m_clientNumber + " Disconnected" + "\n";
+                    var msg = "Client " + socketData.ClientNumber + " Disconnected" + "\n";
 
                     //AppendToRichEditControl(msg);
                     HandleException(msg, e);
 
                     // Remove the reference to the worker socket of the closed client
                     // so that this object will get garbage collected
-                    _mWorkerSocketList[socketData.m_clientNumber - 1] = null;
+                    _mWorkerSocketList[socketData.ClientNumber - 1] = null;
 
                     if (OnClientDisconnectCallback != null)
                     {
@@ -292,8 +297,8 @@ namespace SocketClientServer
                 }
                 SocketPacket theSocPkt = new SocketPacket(soc, clientNumber);
 
-                soc.BeginReceive(theSocPkt.dataBuffer, 0,
-                    theSocPkt.dataBuffer.Length,
+                soc.BeginReceive(theSocPkt.DataBuffer, 0,
+                    theSocPkt.DataBuffer.Length,
                     SocketFlags.None,
                     _workerCallBack,
                     theSocPkt);
@@ -307,17 +312,17 @@ namespace SocketClientServer
         public class SocketPacket
         {
             // Buffer to store the data sent by the client
-            public byte[] dataBuffer = new byte[1024];
+            public byte[] DataBuffer = new byte[1024];
 
-            public int m_clientNumber;
+            public int ClientNumber;
 
-            public System.Net.Sockets.Socket m_currentSocket;
+            public Socket CurrentSocket;
 
             // Constructor which takes a Socket and a client number
-            public SocketPacket(System.Net.Sockets.Socket socket, int clientNumber)
+            public SocketPacket(Socket socket, int clientNumber)
             {
-                m_currentSocket = socket;
-                m_clientNumber = clientNumber;
+                CurrentSocket = socket;
+                ClientNumber = clientNumber;
             }
         }
     }
